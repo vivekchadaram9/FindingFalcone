@@ -1,66 +1,65 @@
 import {SafeAreaView, StyleSheet, Text, View} from 'react-native';
 import React, {useEffect} from 'react';
-import {getAuthenticationToken} from '../../Services/ApiServices';
 import MainGameContainer from './Container';
 import {globalStyles} from '../../styles/globalStyles';
-import {Dropdown} from 'react-native-element-dropdown';
+import DropDown from '../../features/DropDown';
 
 const MainGame = ({navigation}) => {
-  const {planets, vehicles, onChangePlanet, onChangeVehicle} =
-    MainGameContainer(navigation);
+  const {
+    planets,
+    vehicles,
+    onChangePlanet,
+    onChangeVehicle,
+    selection,
+    totalTime,
+  } = MainGameContainer(navigation);
+  console.log(vehicles, 'vehicles');
+  console.log(planets, 'planets');
 
-  const renderDropDown = (index, type) => {
-    let isVehicle = type === 'vehicles';
-
-    const vehicleOject = {
-      placeholder: 'Select Vehicle',
-      data: vehicles.filter(each => each.total_no !== 0),
-      onChangeFunction: onChangeVehicle,
-      // selectedValue : vehicles.find((each)=>each)
-    };
-    const planetObject = {
-      placeholder: 'Select Planet',
-      data: planets.filter(each => !each.isSelected),
-      onChangeFunction: onChangePlanet,
-    };
-
-    let renderObject = isVehicle ? vehicleOject : planetObject;
-
+  const renderVehicleDropdown = index => {
     return (
-      <Dropdown
-        placeholder={renderObject.placeholder}
-        style={{
-          width: '45%',
-          backgroundColor: 'white',
-          padding: 5,
-          borderRadius: 5,
-        }}
-        value={'some'}
-        data={renderObject.data}
-        labelField="name"
-        valueField="name"
-        label="Dropdown"
+      <DropDown
+        placeholder={'Select Vehicle'}
+        value={selection?.[index]?.[1]?.name}
+        data={vehicles.filter(each => each.total_no > 0)}
+        renderItem={item => <Text>{item.name + ` (${item?.total_no})`}</Text>}
+        onChange={item => onChangeVehicle(index, item)}
+        selectedTextStyle={{color: 'black'}}
+        disableItemCondition={item =>
+          selection?.[index]?.[0]?.distance <= item?.max_distance
+        }
+      />
+    );
+  };
+
+  const renderPlanetDropdown = index => {
+    return (
+      <DropDown
+        placeholder={'Select Planet'}
+        value={selection?.[index]?.[0]?.name}
+        data={planets.filter(each => !each.selected)}
         renderItem={item => <Text>{item.name}</Text>}
-        onChange={item => renderObject.onChangeFunction(item._index)}
-        dropdownPosition="auto"
+        onChange={item => onChangePlanet(index, item)}
         selectedTextStyle={{color: 'black'}}
       />
     );
   };
+
   const renderDestinations = index => {
     return (
-      <View key={index}>
+      <View key={index} style={{width: '90%'}}>
         <Text>Destination {index + 1}:</Text>
         <View
           style={{
             display: 'flex',
-            width: '80%',
             flexDirection: 'row',
-            justifyContent: 'space-between',
+            justifyContent: selection?.[index]?.[0]?.name
+              ? 'space-between'
+              : 'flex-start',
             marginVertical: 20,
           }}>
-          {renderDropDown(index, 'planets')}
-          {renderDropDown(index, 'vehicles')}
+          {renderPlanetDropdown(index)}
+          {selection?.[index]?.[0]?.name ? renderVehicleDropdown(index) : null}
         </View>
       </View>
     );
@@ -71,6 +70,7 @@ const MainGame = ({navigation}) => {
         <Text>Finding Falcone</Text>
         <Text>Select planets you want to search in:</Text>
         {[...Array(4)].map((each, index) => renderDestinations(index))}
+        <Text>{`Total time taken : ${totalTime}`}</Text>
       </View>
     </SafeAreaView>
   );

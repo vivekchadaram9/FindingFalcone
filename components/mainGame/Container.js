@@ -1,11 +1,13 @@
 //usuallly all the functionality part stays in the MainGameContainer
 
-import {useEffect, useLayoutEffect, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import {getPlanets, getVehicles} from '../../Services/ApiServices';
 
 const MainGameContainer = () => {
   const [planets, setPlanets] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [selection, setSelection] = useState({});
+  const [totalTime, setTotalTime] = useState(0);
   const callApis = () => {
     getVehicles(
       res => setVehicles(res),
@@ -21,27 +23,51 @@ const MainGameContainer = () => {
   }, []);
 
   const onChangeVehicle = (index, val) => {
-    console.log(index, 'index');
-    let updatedVehicles = vehicles.map(each => {
-      if (each._index === index) {
-        return {...each, total_no: each.total_no - 1};
-      } else {
-        return each;
+    let selectedPlanet = selection?.[index]?.[0] ?? {};
+    let selectedVehicle = selection?.[index]?.[1];
+    setSelection(prev => ({...prev, [index]: [selectedPlanet, val]}));
+    let newVehicles = vehicles.map(vehicle => {
+      if (val?.name === selectedVehicle?.name) {
+        return vehicle;
+      } else if (vehicle?.name === selectedVehicle?.name) {
+        return {...vehicle, total_no: vehicle?.total_no + 1};
+      } else if (vehicle?.name === val?.name) {
+        return {...vehicle, total_no: vehicle?.total_no - 1};
       }
+      return vehicle;
     });
-    setVehicles(updatedVehicles);
+    setVehicles(newVehicles);
+    getTotalTime({...selection, [index]: [selectedPlanet, val]});
   };
 
   const onChangePlanet = (index, val) => {
-    let updatedPlanets = planets.map(each => {
-      if (each._index === index) {
-        return {...each, isSelected: true};
+    let selectedVehicle = selection?.[index]?.[1] ?? {};
+    let selectedPlanet = selection?.[index]?.[0] ?? {};
+    setSelection(prev => ({...prev, [index]: [val, selectedVehicle]}));
+    let newPlanets = [...planets].map(planet => {
+      if (planet?.name === selectedPlanet?.name) {
+        return {...planet, selected: false};
+      }
+      if (planet?.name === val?.name) {
+        return {...planet, selected: true};
       } else {
-        return each;
+        return planet;
       }
     });
+    setPlanets(newPlanets);
+  };
 
-    setPlanets(updatedPlanets);
+  const getTotalTime = newSelection => {
+    let time = 0;
+    Object.keys(newSelection)?.forEach(each => {
+      if (newSelection?.[each]?.[0]?.distance) {
+        time +=
+          newSelection?.[each]?.[0]?.distance /
+          newSelection?.[each]?.[1]?.speed;
+      }
+    });
+    console.log(time);
+    setTotalTime(time);
   };
 
   return {
@@ -49,6 +75,9 @@ const MainGameContainer = () => {
     vehicles,
     onChangePlanet,
     onChangeVehicle,
+    selection,
+    setSelection,
+    totalTime,
   };
 };
 
